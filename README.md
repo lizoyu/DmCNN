@@ -28,9 +28,19 @@ Both sMCI and pMCI groups have 160 patients, each with 1 PET and 1 MRI image. Ea
 Since ADNI is a multi-center database, imaging protocol and device varies. In general, most MRI images were in 3T.
 
 ## Image preprocessing
-affine registration of PET and MRI
-bias field correction
-partial volume correction
+
+Three image preprocessing techniques were applied: affine registration, bias field correction and partial volume correction.
+
+[SimpleElastix](http://simpleelastix.github.io/) was used for affine registration between PET and MRI images, and PET and PET atlas images to make sure they're aligned.
+
+Bias field correction and partial volume correction were conducted using [PETPVE12](https://github.com/GGonEsc/petpve12) toolbox in [SPM12](https://www.fil.ion.ucl.ac.uk/spm/) to remove the noise and correct the location of PET images.
 
 ## Model structure
 
+Since MRI and FDG-PET have their own advantage, it is a good idea to use both, but the problem is how to combine two distinctly different modalities. A common solution is to transform the original data into a higher-level representation such that we assume in the new feature space two modalities can be combined more easily. 
+
+Here we proposed a novel structure called Dual-modal Convolutional Neural Networks (DmCNN), as shown in the figure below. We used a CNN for each modality as backend and combine the outputs of these CNNs via a Merge module, which computes the mean and variance of the two and concatenate them. In this case we try to use CNNs to learn the high-level feature representation for both. Then another CNN as frontend is used to learn and provide final prediction. 
+
+In consideration of the difference between MRI and PET, we used different structures for two modalities. We applied Fully Convolutional Neural Network (FCNN) to PET, usually used for segmentation and thus can provide finer details while preserving global contexts for images, given the limited resolution of PET. For MRI, we used DenseNet with more focus on structural information, like lines, edges and shapes.
+
+![DmCNN model structure](https://github.com/lizoyu/DmCNN/model_structure.png)
