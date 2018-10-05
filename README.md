@@ -43,4 +43,4 @@ Here we proposed a novel structure called Dual-modal Convolutional Neural Networ
 
 In consideration of the difference between MRI and PET, we used different structures for two modalities. We applied Fully Convolutional Neural Network (FCNN) to PET, usually used for segmentation and thus can provide finer details while preserving global contexts for images, given the limited resolution of PET. For MRI, we used DenseNet with more focus on structural information, like lines, edges and shapes.
 
-![DmCNN model structure](https://github.com/lizoyu/DmCNN/model_structure.png)
+![DmCNN model structure](https://github.com/lizoyu/DmCNN/blob/master/model_structure.png)
