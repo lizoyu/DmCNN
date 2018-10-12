@@ -5,15 +5,10 @@ from keras.layers import Conv2D, MaxPooling2D, Input, Activation, Add, Average, 
 from keras.layers import UpSampling2D, AveragePooling2D, Concatenate, LeakyReLU, SpatialDropout2D
 from keras.layers import BatchNormalization, Flatten, Dense
 from keras.layers.pooling import GlobalAveragePooling2D
-from keras_contrib.layers.normalization import InstanceNormalization
-from keras.optimizers import RMSprop, SGD
 from keras.models import Model, load_model
-from keras.callbacks import ModelCheckpoint, EarlyStopping
-from keras.utils import plot_model
 from keras import backend as K
 from metrics import weighted_dice_coefficient_loss
-from mylayer import var, squeeze
-import matplotlib.pyplot as plt
+from mylayer import var
 import numpy as np
 
 K.clear_session()
@@ -150,7 +145,7 @@ mri_end = Conv2D(256, (1,1), padding='same', use_bias=False)(x)
 
 # Merge module
 mean = Average()([pet_end,mri_end])
-var = Lambda(var)([pet_end,mri_end]) # customerized
+var = Lambda(var)([pet_end,mri_end]) # customized
 x = Concatenate()([mean,var])
 
 # Backend: DenseNet
@@ -193,9 +188,7 @@ dmcnn = Model(inputs=[pet_inputs,mri_inputs], outputs=prediction)
 
 """
 Fill in the pre-trained weights.
-
 """
-
 # load the pretrained model
 densenet = load_model('models/densenet.h5')
 print('DenseNet loaded.')
@@ -204,42 +197,42 @@ fcn = load_model('models/isensee_2017_model.h5',
 print('Residual FCN loaded.')
 
 # MRI branch
-mcnn.layers[1].set_weights([np.tile(densenet.layers[2].get_weights()[0], (1,1,40,1))])
-print(mcnn.layers[1].get_config()['name'], densenet.layers[2].get_config()['name'])
+dmcnn.layers[1].set_weights([np.tile(densenet.layers[2].get_weights()[0], (1,1,40,1))])
+print(dmcnn.layers[1].get_config()['name'], densenet.layers[2].get_config()['name'])
 
 layer_idx = [(8,9), (11,12), (15,16), (18,19), (22,23), (25,26), (29,30), (32,33), (36,37), (39,40), (43,44)]
 layer_idx += [(46,47), (50,51), (54,55), (57,58), (61,62), (64,65), (68,69), (71,72), (78-1,76), (84-1,79), (92-1,83)]
 layer_idx += [(98-1,86), (106-1,90), (112-1,93), (120-1,97), (126-1,100), (134-1,104), (140-1,107), (148-1,111), (154-1,114)]
 layer_idx += [(162-1,118), (168-1,121), (177-2,125), (186-2,128), (194-1,132), (200-1,135), (208-1,139)]
 for i, j in layer_idx:
-    mcnn.layers[i].set_weights(densenet.layers[j].get_weights())
-    print(mcnn.layers[i].get_config()['name'], densenet.layers[j].get_config()['name'])
+    dmcnn.layers[i].set_weights(densenet.layers[j].get_weights())
+    print(dmcnn.layers[i].get_config()['name'], densenet.layers[j].get_config()['name'])
 
 # PET branch
-mcnn.layers[75].set_weights([fcn.layers[1].get_weights()[0][:,:,:,:1,:], fcn.layers[1].get_weights()[1]])
-print(mcnn.layers[75].get_config()['name'], fcn.layers[1].get_config()['name'])
+dmcnn.layers[75].set_weights([fcn.layers[1].get_weights()[0][:,:,:,:1,:], fcn.layers[1].get_weights()[1]])
+print(dmcnn.layers[75].get_config()['name'], fcn.layers[1].get_config()['name'])
 
 layer_idx = [(81,4), (89,8), (99,12), (105,15), (113,19), (123,23), (129,26), (137,30), (147,79), (155,83), (161,86)]
 layer_idx += [(169,90), (178,94)]
 
 for i, j in layer_idx:
-    mcnn.layers[i].set_weights(fcn.layers[j].get_weights())
-    print(i, mcnn.layers[i].get_config()['name'], j, fcn.layers[j].get_config()['name'])
+    dmcnn.layers[i].set_weights(fcn.layers[j].get_weights())
+    print(i, dmcnn.layers[i].get_config()['name'], j, fcn.layers[j].get_config()['name'])
 
 #### transition block using DenseNet
-mcnn.layers[197].set_weights([densenet.layers[51].get_weights()[0][:,:,:120,:]])
-print(mcnn.layers[197].get_config()['name'], densenet.layers[51].get_config()['name'])
-mcnn.layers[205].set_weights([densenet.layers[139].get_weights()[0][:,:,:128,:]])
-print(mcnn.layers[205].get_config()['name'], densenet.layers[139].get_config()['name'])
+dmcnn.layers[197].set_weights([densenet.layers[51].get_weights()[0][:,:,:120,:]])
+print(dmcnn.layers[197].get_config()['name'], densenet.layers[51].get_config()['name'])
+dmcnn.layers[205].set_weights([densenet.layers[139].get_weights()[0][:,:,:128,:]])
+print(dmcnn.layers[205].get_config()['name'], densenet.layers[139].get_config()['name'])
 
-# Backend
-mcnn.layers[214-1].set_weights([densenet.layers[139].get_weights()[0][...,:64]])
-print(mcnn.layers[214].get_config()['name'], densenet.layers[139].get_config()['name'])
+# frontend
+dmcnn.layers[214-1].set_weights([densenet.layers[139].get_weights()[0][...,:64]])
+print(dmcnn.layers[214].get_config()['name'], densenet.layers[139].get_config()['name'])
 
 i = 218-1; j = 9; isFour = False
 while i <= 256:
-    mcnn.layers[i].set_weights(densenet.layers[j].get_weights())
-    print(i, mcnn.layers[i].get_config()['name'], j, densenet.layers[j].get_config()['name'])
+    dmcnn.layers[i].set_weights(densenet.layers[j].get_weights())
+    print(i, dmcnn.layers[i].get_config()['name'], j, densenet.layers[j].get_config()['name'])
     if isFour:
         inc = 4
         isFour = False
@@ -249,13 +242,13 @@ while i <= 256:
     i += inc
     j += inc
     
-mcnn.layers[260-1].set_weights(densenet.layers[51].get_weights())
-print(mcnn.layers[260-1].get_config()['name'], densenet.layers[51].get_config()['name'])
+dmcnn.layers[260-1].set_weights(densenet.layers[51].get_weights())
+print(dmcnn.layers[260-1].get_config()['name'], densenet.layers[51].get_config()['name'])
 
 i = 264-1; j = 55; isFour = False
 while i <= 344:
-    mcnn.layers[i].set_weights(densenet.layers[j].get_weights())
-    print(mcnn.layers[i].get_config()['name'], densenet.layers[j].get_config()['name'])
+    dmcnn.layers[i].set_weights(densenet.layers[j].get_weights())
+    print(dmcnn.layers[i].get_config()['name'], densenet.layers[j].get_config()['name'])
     if isFour:
         inc = 4
         isFour = False
